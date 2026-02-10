@@ -94,6 +94,7 @@ pub enum SnowflakeAuthMethod {
     Oauth {
         token: String,
     },
+    UnencryptedKey(String),
     #[cfg(feature = "external-browser-sso")]
     ExternalBrowser,
 }
