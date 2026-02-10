@@ -156,7 +156,7 @@ fn login_request_data(
         SnowflakeAuthMethod::UnencryptedKey(key) => {
             let jwt = generate_jwt_from_key_pair(
                 key,
-                None,
+                None::<&[u8]>,
                 username,
                 &config.account,
                 Utc::now().timestamp(),
