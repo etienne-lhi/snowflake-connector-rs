@@ -154,38 +154,12 @@ fn login_request_data(
             Ok(data)
         }
         SnowflakeAuthMethod::UnencryptedKey(key) => {
-            let jwt = generate_jwt_from_key_pair(
-                key,
-                None::<&[u8]>,
-                username,
-                &config.account,
-                Utc::now().timestamp(),
-            )?;
-            let mut data = base_login_request_data(username, config);
-            if let Some(obj) = data.as_object_mut() {
-                obj.insert("TOKEN".to_string(), json!(jwt));
-                obj.insert("AUTHENTICATOR".to_string(), json!("SNOWFLAKE_JWT"));
-            }
-            Ok(data)
+            build_jwt_login_request(key, None::<&[u8]>, username, config)
         }
         SnowflakeAuthMethod::KeyPair {
             encrypted_pem,
             password,
-        } => {
-            let jwt = generate_jwt_from_key_pair(
-                encrypted_pem,
-                Some(password),
-                username,
-                &config.account,
-                Utc::now().timestamp(),
-            )?;
-            let mut data = base_login_request_data(username, config);
-            if let Some(obj) = data.as_object_mut() {
-                obj.insert("TOKEN".to_string(), json!(jwt));
-                obj.insert("AUTHENTICATOR".to_string(), json!("SNOWFLAKE_JWT"));
-            }
-            Ok(data)
-        }
+        } => build_jwt_login_request(encrypted_pem, Some(password), username, config),
         SnowflakeAuthMethod::Oauth { token } => Ok(json!({
             "AUTHENTICATOR": "OAUTH",
             "TOKEN": token
@@ -195,6 +169,27 @@ fn login_request_data(
             "external browser flow should be handled upstream".into(),
         )),
     }
+}
+
+fn build_jwt_login_request(
+    key: &str,
+    password: Option<impl AsRef<[u8]>>,
+    username: &str,
+    config: &SnowflakeClientConfig,
+) -> Result<Value> {
+    let jwt = generate_jwt_from_key_pair(
+        key,
+        password,
+        username,
+        &config.account,
+        Utc::now().timestamp(),
+    )?;
+    let mut data = base_login_request_data(username, config);
+    if let Some(obj) = data.as_object_mut() {
+        obj.insert("TOKEN".to_string(), json!(jwt));
+        obj.insert("AUTHENTICATOR".to_string(), json!("SNOWFLAKE_JWT"));
+    }
+    Ok(data)
 }
 
 #[derive(serde::Deserialize)]
